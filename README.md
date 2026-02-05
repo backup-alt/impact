@@ -1,4 +1,4 @@
-# 🏙️ Metro Pulse: AI Traffic OS v2.0
+# 🏙️ Metro Pulse: AI Traffic OS
 
 ![Project Status](https://img.shields.io/badge/Status-Active-emerald?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Backend-Python%20Flask-blue?style=for-the-badge&logo=python)
@@ -42,7 +42,7 @@ The system is designed to be **fault-tolerant** (auto-healing streams) and **per
 
 ## ⚙️ Installation & Setup
 
-###Backend (The Brain)
+### Backend (The Brain)
 
 Navigate to the backend folder.
 
