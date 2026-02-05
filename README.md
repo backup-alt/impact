@@ -1,11 +1,12 @@
-# 🏙️ Metro Pulse: AI Traffic OS v3.0
+# 🏙️ Metro Pulse: AI Traffic OS v2.0
 
 ![Project Status](https://img.shields.io/badge/Status-Active-emerald?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Backend-Python%20Flask-blue?style=for-the-badge&logo=python)
 ![React](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61DAFB?style=for-the-badge&logo=react)
 ![AI](https://img.shields.io/badge/AI-YOLOv8%20%2B%20EasyOCR-purple?style=for-the-badge)
 
-> **Real-time urban traffic analytics system powered by Computer Vision.** > *Currently monitoring: Shibuya Scramble Crossing, Tokyo.*
+> **Real-time urban traffic analytics system powered by Computer Vision.**
+> *Currently monitoring: Shibuya Scramble Crossing, Tokyo.*
 
 ![Dashboard Preview](screenshot.png)
 ## ⚡ System Overview
@@ -43,7 +44,7 @@ The system is designed to be **fault-tolerant** (auto-healing streams) and **per
 
 ### 1. Backend (The Brain)
 
-Navigate to the backend folder and install dependencies.
+Navigate to the backend folder.
 
 **Prerequisites:** Python 3.9+ installed.
 
