@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import AuthPage from './auth.jsx'; // Explicit import to resolve build error
 import { 
   Play, 
   Square, 
@@ -9,10 +10,22 @@ import {
   Eye, 
   Terminal, 
   Shield, 
-  Zap
+  Zap,
+  Menu, 
+  Rocket,
+  Github,
+  ChevronRight,
+  ArrowLeft,
+  Minimize,
+  Maximize,
+  Monitor,
+  Server
 } from 'lucide-react';
 
-// --- Helper: Random Data Generators ---
+// ==========================================
+// CONFIGURATION & HELPERS
+// ==========================================
+
 const VEHICLE_TYPES = ['Car', 'Bus', 'Truck', 'Bike', 'Auto'];
 const CITIES = ['TN-01', 'TN-05', 'TN-07', 'KA-01', 'KL-02', 'DL-3C'];
 
@@ -23,8 +36,6 @@ const generateLicensePlate = () => {
   return `${city}-${letters}-${numbers}`;
 };
 
-// --- Constant Configuration ---
-// Mapped to video files in the root folder as requested
 const FEEDS_CONFIG = [
   { id: '01', label: 'North Gate - Anna Salai', videoSrc: 'stream1.mp4' },
   { id: '02', label: 'East Wing - OMR', videoSrc: 'stream2.mp4' },
@@ -33,25 +44,274 @@ const FEEDS_CONFIG = [
   { id: '05', label: 'Central Plaza', videoSrc: 'stream5.mp4' },
 ];
 
-// --- Component: Video Traffic Feed ---
-const TrafficFeed = React.memo(({ id, label, isRunning, videoSrc, onVehicleDetect }) => {
-  const [vehicleCount, setVehicleCount] = useState(0);
+// ==========================================
+// SUB-COMPONENTS (Shared)
+// ==========================================
+
+const Navbar = ({ onLaunch, onNavigate, variant = 'landing', isScrolled, children }) => {
+  const isDashboard = variant === 'dashboard';
+  const isSolid = isDashboard || isScrolled;
   
-  // --- Data Simulation Effect ---
-  // Since we are using video files, we simulate the AI detection events 
-  // to keep the data logs flowing while the video plays.
+  return (
+    <nav className={`fixed top-0 w-full z-50 backdrop-blur-md border-b transition-all duration-300 ${
+      isSolid 
+        ? 'bg-white/95 border-slate-200 shadow-sm' 
+        : 'bg-transparent border-transparent'
+    }`}>
+      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div 
+          className="flex items-center space-x-3 group cursor-pointer" 
+          onClick={() => onNavigate('landing')}
+        >
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all duration-500 ${
+            isSolid 
+              ? 'bg-blue-600 shadow-blue-200 group-hover:bg-blue-700' 
+              : 'bg-slate-900 shadow-blue-900/20 group-hover:bg-blue-600'
+          }`}>
+            <Activity className="text-white w-6 h-6" />
+          </div>
+          <div>
+            <span className={`block text-lg font-black tracking-tight leading-none ${isSolid ? 'text-slate-900' : 'text-white'}`}>
+              METRO<span className="text-blue-600">PULSE</span>
+            </span>
+            <span className={`text-[10px] font-mono tracking-widest uppercase ${isSolid ? 'text-slate-500' : 'text-slate-300'}`}>
+              {isDashboard ? 'Professional Suite v2.0' : 'Traffic OS v2.0'}
+            </span>
+          </div>
+        </div>
+        
+        <div className="hidden md:flex items-center gap-6">
+          <div className="flex items-center space-x-1">
+            {['Overview', 'Live Demo', 'Impact'].map((item) => (
+              <button 
+                key={item} 
+                onClick={() => onNavigate(item)}
+                className={`px-4 py-2 text-xs font-bold transition-all uppercase tracking-wide ${
+                  isSolid 
+                    ? 'text-blue-600 hover:text-slate-950'
+                    : 'text-white hover:text-blue-400'
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+
+          <div className={`h-6 w-[1px] ${isSolid ? 'bg-slate-200' : 'bg-white/20'}`} />
+
+          {variant === 'landing' ? (
+            <button 
+              onClick={onLaunch}
+              className="flex items-center gap-2 bg-slate-900 hover:bg-blue-600 text-white px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-xl shadow-slate-900/20 hover:shadow-blue-600/30 active:scale-95 group"
+            >
+              <Rocket className="w-3.5 h-3.5 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+              Launch Dashboard
+            </button>
+          ) : (
+            children
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+const StaticArrows = () => (
+  <div className="absolute inset-0 pointer-events-none z-10">
+    <svg className="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="none">
+      <defs>
+        <marker id="arrowhead-static" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#475569" />
+        </marker>
+      </defs>
+      <path 
+        d="M 250,500 C 350,250 550,250 450,450 C 400,550 550,580 660,520" 
+        fill="none" 
+        stroke="#475569" 
+        strokeWidth="5" 
+        strokeDasharray="12 8"
+        markerEnd="url(#arrowhead-static)"
+        opacity="0.9"
+      />
+    </svg>
+  </div>
+);
+
+const Hero = ({ onLaunch }) => (
+  <div 
+    className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[10%] w-[120%] h-[60vh] bg-white/80 rounded-t-[100%] shadow-[0_-50px_100px_-20px_rgba(37,99,235,0.15)] border-t border-blue-100/50 overflow-hidden"
+    style={{ zIndex: 5 }}
+  >
+    <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/50 to-transparent opacity-50"></div>
+    <div className="mt-[10vh] text-center max-w-4xl mx-auto px-6 flex flex-col items-center relative z-10">
+       <div className="relative group cursor-pointer mb-8" onClick={() => window.open('https://github.com', '_blank')}>
+         <div className="absolute -inset-8 bg-slate-200/50 rounded-full blur-2xl group-hover:bg-slate-300/50 transition-all duration-700"></div>
+         <button className="relative flex flex-col items-center justify-center bg-white hover:bg-slate-50 text-slate-900 w-32 h-32 rounded-full shadow-2xl transition-all duration-500 hover:scale-105 active:scale-95 border-[6px] border-slate-50 ring-1 ring-slate-200">
+           <div className="mb-2">
+             <Github className="w-8 h-8 text-slate-700 group-hover:text-black transition-colors" />
+           </div>
+           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">View Us</span>
+           <span className="text-xs font-black uppercase tracking-tight">On GitHub</span>
+         </button>
+       </div>
+       <div className="space-y-6">
+         <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tighter uppercase leading-tight">
+           Sense Of <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Innovation, Versatility, And Possibility</span>
+         </h2>
+         <p className="text-slate-600 text-sm md:text-base font-medium leading-relaxed max-w-2xl mx-auto">
+           More than just traffic control—we are a commitment to safer roads and cleaner air. 
+           <br className="hidden md:block" />
+           Empowering communities through responsible AI, reducing emissions, and prioritizing life with intelligent emergency corridors.
+         </p>
+       </div>
+       <div className="mt-8 flex gap-4">
+          <div className="flex items-center gap-2 px-4 py-2 bg-slate-50/50 rounded-full border border-slate-200 text-xs font-bold text-slate-700">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            System Online
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-slate-50/50 rounded-full border border-slate-200 text-xs font-bold text-slate-700">
+            <Github size={14} />
+            v2.0.4-beta
+          </div>
+       </div>
+    </div>
+  </div>
+);
+
+const LiveDemoConsole = React.forwardRef((props, ref) => {
+  const [logs, setLogs] = useState([]);
+  const [activeStream, setActiveStream] = useState('stream1.mp4');
+  const logContainerRef = useRef(null);
+
+  const streams = [
+    { id: 'stream1.mp4', label: 'Stream 1' },
+    { id: 'stream2.mp4', label: 'Stream 2' },
+    { id: 'stream3.mp4', label: 'Stream 3' },
+    { id: 'stream4.mp4', label: 'Stream 4' },
+    { id: 'stream5.mp4', label: 'Stream 5' },
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const type = VEHICLE_TYPES[Math.floor(Math.random() * VEHICLE_TYPES.length)];
+      const conf = (85 + Math.random() * 14).toFixed(1);
+      const plate = generateLicensePlate();
+      const time = new Date().toLocaleTimeString();
+      const log = {
+        time,
+        msg: `Detected ${type} [${plate}]`,
+        meta: `Conf: ${conf}%`,
+        id: Math.random().toString(36).substring(7)
+      };
+      setLogs(prev => [...prev.slice(-15), log]); 
+    }, 1200);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [logs]);
+
+  return (
+    <div ref={ref} id="live-demo" className="w-full min-h-screen bg-slate-50 py-20 px-6 border-t border-slate-200 flex flex-col justify-center relative z-20">
+      <div className="max-w-7xl mx-auto w-full">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border border-slate-200 shadow-sm">
+              <Monitor className="text-blue-600" size={24} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Live Demo <span className="text-blue-600">Console</span></h2>
+              <p className="text-slate-500 text-xs font-bold tracking-wider uppercase">System Status: Online // Monitoring Active</p>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[650px]">
+          <div className="lg:col-span-8 flex flex-col gap-4 h-full">
+            <div className="bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-1">
+              {streams.map((stream) => (
+                <button
+                  key={stream.id}
+                  onClick={() => setActiveStream(stream.id)}
+                  className={`flex-1 px-4 py-2.5 text-xs font-bold rounded-lg transition-all uppercase tracking-wide flex items-center justify-center gap-2 ${
+                    activeStream === stream.id
+                      ? 'bg-slate-900 text-white shadow-md'
+                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <Eye size={14} className={activeStream === stream.id ? 'text-blue-400' : 'text-slate-400'} />
+                  {stream.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 bg-black rounded-2xl overflow-hidden shadow-2xl relative border-4 border-white ring-1 ring-slate-200 group">
+              <div className="absolute top-4 left-4 z-20 flex gap-2">
+                <div className="bg-black/60 backdrop-blur-md text-white/90 text-xs font-mono px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/10">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                  LIVE
+                </div>
+              </div>
+              <video 
+                key={activeStream} 
+                src={activeStream}
+                className="w-full h-full object-cover" 
+                autoPlay 
+                loop 
+                muted 
+                playsInline 
+              />
+              <div className="absolute inset-0 pointer-events-none">
+                 <div className="absolute top-1/4 left-1/4 w-32 h-32 border-2 border-blue-500/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              </div>
+            </div>
+          </div>
+          <div className="lg:col-span-4 h-full flex flex-col bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <div className="p-4 border-b border-slate-100 bg-slate-50/80 flex justify-between items-center shrink-0">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                <Server size={14} className="text-blue-500" />
+                Detection Logs
+              </span>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                <span className="text-[10px] font-mono text-slate-400">RECEIVING</span>
+              </div>
+            </div>
+            <div 
+              ref={logContainerRef}
+              className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/30 custom-scrollbar"
+            >
+              {logs.map((log) => (
+                <div key={log.id} className="flex flex-col bg-white p-3 rounded-lg border border-slate-100 shadow-sm animate-in slide-in-from-right fade-in duration-300">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-bold text-slate-400 font-mono">{log.time}</span>
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{log.meta}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-700 font-mono">{log.msg}</span>
+                </div>
+              ))}
+            </div>
+            <div className="p-3 border-t border-slate-100 bg-white text-[10px] text-slate-400 text-center font-mono uppercase tracking-widest shrink-0">
+              Processing Incoming Data...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const TrafficFeed = React.memo(({ id, label, isRunning, videoSrc, onVehicleDetect, onClick, className }) => {
+  const [vehicleCount, setVehicleCount] = useState(0);
+
   useEffect(() => {
     let intervalId;
-
     if (isRunning) {
-      // Create a slightly randomized interval for each camera to make logs look natural
       const detectionSpeed = 1500 + Math.random() * 2000; 
-
       intervalId = setInterval(() => {
-        // 1. Trigger a "Detection" event
         const type = VEHICLE_TYPES[Math.floor(Math.random() * VEHICLE_TYPES.length)];
         const confidence = (85 + Math.random() * 14).toFixed(1);
-        
         onVehicleDetect({
           id: Date.now() + Math.random(),
           camId: id,
@@ -60,144 +320,177 @@ const TrafficFeed = React.memo(({ id, label, isRunning, videoSrc, onVehicleDetec
           confidence: confidence,
           timestamp: new Date().toLocaleTimeString()
         });
-
-        // 2. Update the "Active Objects" count to simulate real-time counting
         setVehicleCount(prev => {
-          const change = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+          const change = Math.floor(Math.random() * 3) - 1; 
           let newCount = prev + change;
-          if (newCount < 0) newCount = 0;
-          if (newCount > 15) newCount = 15;
-          return newCount;
+          return Math.max(0, Math.min(15, newCount));
         });
-
       }, detectionSpeed);
     }
-
     return () => clearInterval(intervalId);
   }, [isRunning, id, onVehicleDetect]);
 
   return (
-    <div className="relative w-full h-48 bg-slate-900 border border-slate-700 rounded-lg overflow-hidden shadow-lg group shrink-0">
-      
-      {/* Video Player */}
-      <video 
-        src={videoSrc}
-        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-        autoPlay
-        loop
-        muted
-        playsInline
-      />
-
-      {/* AI Processing Overlay (Visible only when Running) */}
+    <div 
+      onClick={onClick}
+      className={`relative bg-black rounded-xl overflow-hidden shadow-sm border border-slate-200 group shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-blue-500/50 ${className || 'w-full h-48'}`}
+    >
+      <video src={videoSrc} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" autoPlay loop muted playsInline />
       {isRunning && (
         <div className="absolute inset-0 pointer-events-none">
-          {/* Scan line effect */}
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-cyan-500/10 to-transparent animate-pulse"></div>
-          {/* Bounding box grid hint */}
-          <div className="absolute inset-4 border border-dashed border-cyan-500/30 opacity-50"></div>
-          {/* Corner markers */}
-          <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-cyan-500"></div>
-          <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-cyan-500"></div>
-          <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-cyan-500"></div>
-          <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-cyan-500"></div>
+          <div className="absolute inset-4 border border-dashed border-white/30 opacity-50"></div>
+          <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-white/50"></div>
+          <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-white/50"></div>
+          <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-white/50"></div>
+          <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-white/50"></div>
         </div>
       )}
-
-      {/* Status Bar */}
-      <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2 flex justify-between items-center backdrop-blur-sm">
-        <span className="text-xs font-mono text-cyan-400 flex items-center gap-1">
-          <Eye size={12} /> {label}
-        </span>
-        <span className={`text-xs px-2 py-0.5 rounded ${vehicleCount > 8 ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-          {vehicleCount > 8 ? 'CONGESTION' : 'FLOWING'}
-        </span>
+      <div className="absolute bottom-0 left-0 right-0 bg-white/90 p-2 flex justify-between items-center backdrop-blur-sm border-t border-slate-200">
+        <span className="text-xs font-bold text-slate-700 flex items-center gap-1"><Eye size={12} className="text-blue-600" /> {label}</span>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${vehicleCount > 8 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>{vehicleCount > 8 ? 'CONGESTION' : 'FLOWING'}</span>
       </div>
     </div>
   );
 });
 
-// --- Main App Component ---
-export default function MetroPulseDashboard() {
-  const [systemState, setSystemState] = useState('offline'); // offline, initializing, running
+// ==========================================
+// MAIN APP COMPONENT
+// ==========================================
+
+export default function App() {
+  const [view, setView] = useState('landing'); 
+  const [systemState, setSystemState] = useState('offline'); 
+  const [selectedFeedId, setSelectedFeedId] = useState(null);
   const [logs, setLogs] = useState([]);
   const [emergencyActive, setEmergencyActive] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false); 
   const scrollRef = useRef(null);
+  const liveDemoRef = useRef(null); 
+  
+  const [user, setUser] = useState(null); // Initially null to show AuthPage
 
-  const handleLaunch = () => {
-    setSystemState('initializing');
+  useEffect(() => {
+    const handleScroll = () => {
+      const offset = window.scrollY;
+      setIsScrolled(offset > 100);
+    };
+    if (view === 'landing') {
+      window.addEventListener('scroll', handleScroll);
+    }
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [view]);
+
+  const [scrollTarget, setScrollTarget] = useState(null);
+
+  const handleNavigation = (destination) => {
+    if (destination === 'Overview') {
+      setView('landing');
+      setScrollTarget('top');
+    } else if (destination === 'Live Demo') {
+      setView('landing');
+      setScrollTarget('live-demo');
+    } else if (destination === 'landing') {
+      setView('landing');
+    }
+  };
+
+  useEffect(() => {
+    if (view === 'landing' && scrollTarget) {
+      const timer = setTimeout(() => {
+        if (scrollTarget === 'top') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (scrollTarget === 'live-demo' && liveDemoRef.current) {
+          liveDemoRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+        setScrollTarget(null); 
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [view, scrollTarget]);
+
+  const startDashboard = () => {
+    setView('dashboard');
     setTimeout(() => {
-      setSystemState('running');
-    }, 2000);
+       setSystemState('initializing');
+       setTimeout(() => setSystemState('running'), 2000);
+    }, 500);
   };
 
   const handleStop = () => {
     setSystemState('offline');
     setLogs([]);
     setEmergencyActive(false);
+    setSelectedFeedId(null);
+    handleNavigation('landing');
   };
 
-  // Wrapped in useCallback to prevent new function creation on every render
   const handleVehicleDetect = useCallback((data) => {
-    setLogs(prev => [data, ...prev].slice(0, 50)); // Keep last 50 logs
+    setLogs(prev => [data, ...prev].slice(0, 50)); 
   }, []);
 
-  // Auto-scroll logs
   useEffect(() => {
     if (scrollRef.current && systemState === 'running') {
       scrollRef.current.scrollTop = 0;
     }
   }, [logs, systemState]);
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500 selection:text-white overflow-hidden">
-      {/* Top Navigation Bar */}
-      <nav className="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-tr from-cyan-600 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <Cpu className="text-white" size={24} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-white">METRO PULSE <span className="text-cyan-400">AI</span></h1>
-            <p className="text-xs text-slate-400 font-mono tracking-wider">CORE.EXE // LAUNCH AGENT V2.0</p>
-          </div>
-        </div>
+  const selectedFeedData = selectedFeedId ? FEEDS_CONFIG.find(f => f.id === selectedFeedId) : null;
 
+  // IF NO USER -> SHOW AUTH PAGE
+  if (!user) {
+      return <AuthPage onLogin={setUser} />;
+  }
+
+  // --- RENDER: LANDING PAGE ---
+  if (view === 'landing') {
+    return (
+      <div className="min-h-screen relative text-slate-900 font-sans selection:bg-blue-100 overflow-x-hidden bg-slate-50">
+        <div className="relative h-screen">
+          <div 
+            className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url('Banner.jpeg')` }}
+          >
+          </div>
+          <Navbar onLaunch={startDashboard} onNavigate={handleNavigation} isScrolled={isScrolled} />
+          <main className="relative z-10 h-full flex items-end justify-center overflow-hidden">
+            <StaticArrows />
+            <Hero onLaunch={startDashboard} />
+          </main>
+        </div>
+        <LiveDemoConsole ref={liveDemoRef} />
+      </div>
+    );
+  }
+
+  // --- RENDER: DASHBOARD ---
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+      <Navbar variant="dashboard" onNavigate={handleNavigation} isScrolled={true}>
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-900 rounded-full border border-slate-700">
-            <div className={`w-2 h-2 rounded-full ${systemState === 'running' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`} />
-            <span className="text-sm font-medium uppercase tracking-wider text-slate-300">
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-100 rounded-full border border-slate-200">
+            <div className={`w-2 h-2 rounded-full ${systemState === 'running' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+            <span className="text-sm font-bold uppercase tracking-wider text-slate-600">
               {systemState === 'running' ? 'SYSTEM ACTIVE' : systemState === 'initializing' ? 'BOOTING...' : 'SYSTEM STANDBY'}
             </span>
           </div>
           <div className="flex gap-2">
-            <span className="text-xs px-2 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded">SDG 11</span>
-            <span className="text-xs px-2 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded">Urban Mobility</span>
+            <span className="text-xs px-2 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded font-bold">SDG 11</span>
+            <span className="text-xs px-2 py-1 bg-purple-50 text-purple-600 border border-purple-200 rounded font-bold">Urban Mobility</span>
           </div>
         </div>
-      </nav>
+      </Navbar>
 
-      {/* Main Content Area - Enforced Grid Height with Scrollable Columns */}
-      <main className="p-6 grid grid-cols-12 gap-6 h-[calc(100vh-64px)] overflow-hidden">
-        
-        {/* Left Column: Controls & Metrics (3 Cols) - Scrollable */}
-        <div className="col-span-12 lg:col-span-3 flex flex-col gap-6 h-full overflow-y-auto pb-6 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-          
-          {/* Control Panel */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 shadow-xl backdrop-blur-sm shrink-0">
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <Zap size={16} /> Operations
+      <main className="p-6 grid grid-cols-12 gap-6 h-[calc(100vh-80px)] overflow-hidden mt-20">
+        <div className="col-span-12 lg:col-span-3 flex flex-col gap-6 h-full overflow-y-auto pb-6 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm shrink-0">
+            <h2 className="text-sm font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Zap size={16} className="text-blue-600" /> Operations
             </h2>
-            
             <div className="space-y-3">
               {systemState !== 'running' ? (
                 <button 
-                  onClick={handleLaunch}
-                  disabled={systemState === 'initializing'}
-                  className={`w-full py-4 rounded-lg font-bold flex items-center justify-center gap-2 transition-all 
-                    ${systemState === 'initializing' 
-                      ? 'bg-slate-800 text-slate-500 cursor-wait' 
-                      : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 active:scale-95'}`}
+                  disabled
+                  className="w-full py-4 rounded-lg font-bold flex items-center justify-center gap-2 bg-slate-100 text-slate-400 cursor-wait opacity-70 border border-slate-200"
                 >
                   {systemState === 'initializing' ? <Activity className="animate-spin" /> : <Play fill="currentColor" />}
                   {systemState === 'initializing' ? 'INITIALIZING NEURAL NET...' : 'LAUNCH AGENT'}
@@ -205,196 +498,146 @@ export default function MetroPulseDashboard() {
               ) : (
                 <button 
                   onClick={handleStop}
-                  className="w-full py-4 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 rounded-lg font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
+                  className="w-full py-4 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm"
                 >
                   <Square fill="currentColor" size={18} />
                   TERMINATE SESSION
                 </button>
               )}
-
               <button 
                 onClick={() => setEmergencyActive(!emergencyActive)}
-                className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all border
+                className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all border shadow-sm
                   ${emergencyActive 
-                    ? 'bg-red-600 text-white border-red-500 animate-pulse shadow-red-500/50 shadow-lg' 
-                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600'}`}
+                    ? 'bg-red-600 text-white border-red-600 animate-pulse shadow-red-200' 
+                    : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50 hover:border-slate-400'}`}
               >
                 <AlertTriangle size={18} />
                 {emergencyActive ? 'EMERGENCY OVERRIDE ACTIVE' : 'SIMULATE EMERGENCY'}
               </button>
             </div>
           </div>
-
-          {/* System Health */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 shrink-0 flex flex-col">
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <Activity size={16} /> System Metrics
+          
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shrink-0 flex flex-col shadow-sm">
+            <h2 className="text-sm font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Activity size={16} className="text-blue-600" /> System Metrics
             </h2>
-            
             <div className="space-y-6">
               <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-400">GPU Load</span>
-                  <span className="text-cyan-400">{systemState === 'running' ? '87%' : '0%'}</span>
-                </div>
-                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-cyan-500 transition-all duration-1000" 
-                    style={{ width: systemState === 'running' ? '87%' : '0%' }}
-                  />
-                </div>
+                <div className="flex justify-between text-xs mb-1 font-semibold"><span className="text-slate-500">GPU Load</span><span className="text-blue-600">{systemState === 'running' ? '87%' : '0%'}</span></div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-blue-600 transition-all duration-1000" style={{ width: systemState === 'running' ? '87%' : '0%' }}/></div>
               </div>
-
               <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-400">Network Latency</span>
-                  <span className="text-emerald-400">{systemState === 'running' ? '12ms' : '-'}</span>
-                </div>
-                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-emerald-500 transition-all duration-1000" 
-                    style={{ width: systemState === 'running' ? '15%' : '0%' }}
-                  />
-                </div>
+                <div className="flex justify-between text-xs mb-1 font-semibold"><span className="text-slate-500">Network Latency</span><span className="text-emerald-600">{systemState === 'running' ? '12ms' : '-'}</span></div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: systemState === 'running' ? '15%' : '0%' }}/></div>
               </div>
-
               <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-400">Model Confidence</span>
-                  <span className="text-purple-400">{systemState === 'running' ? '98.2%' : '-'}</span>
-                </div>
-                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-purple-500 transition-all duration-1000" 
-                    style={{ width: systemState === 'running' ? '98%' : '0%' }}
-                  />
-                </div>
+                <div className="flex justify-between text-xs mb-1 font-semibold"><span className="text-slate-500">Model Confidence</span><span className="text-purple-600">{systemState === 'running' ? '98.2%' : '-'}</span></div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-purple-500 transition-all duration-1000" style={{ width: systemState === 'running' ? '98%' : '0%' }}/></div>
               </div>
             </div>
-
-            <div className="mt-8 pt-6 border-t border-slate-800">
-               <div className="flex items-center gap-3 text-slate-400 text-sm">
-                 <Shield size={16} />
-                 <span>Security Protocols:</span>
-                 <span className="text-emerald-400">Active</span>
-               </div>
+            <div className="mt-8 pt-6 border-t border-slate-100">
+               <div className="flex items-center gap-3 text-slate-500 text-sm font-medium"><Shield size={16} className="text-emerald-500" /><span>Security Protocols:</span><span className="text-emerald-600 font-bold">Active</span></div>
             </div>
           </div>
         </div>
 
-        {/* Center Column: Video Grid (6 Cols) - Scrollable */}
-        <div className="col-span-12 lg:col-span-6 flex flex-col gap-4 h-full overflow-y-auto pb-6 pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-          {/* Header for grid */}
-          <div className="flex justify-between items-end shrink-0">
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <Eye size={16} /> Live Surveillance Matrix
-            </h2>
-            <span className={`text-xs flex items-center gap-1 ${systemState === 'running' ? 'text-red-400 animate-pulse' : 'text-slate-500'}`}>
-               <span className={`w-2 h-2 rounded-full ${systemState === 'running' ? 'bg-red-500' : 'bg-slate-500'}`}></span>
-               {systemState === 'running' ? 'AI ANALYZING' : 'CCTV FEED LIVE'}
-            </span>
-          </div>
-
-          {/* 5-Stream Grid Layout */}
-          <div className="grid grid-cols-2 gap-4 pb-12">
-            {/* First 4 regular size */}
-            {FEEDS_CONFIG.slice(0, 4).map((feed) => (
-              <TrafficFeed 
-                key={feed.id} 
-                {...feed} 
-                isRunning={systemState === 'running'} 
-                onVehicleDetect={handleVehicleDetect}
-              />
-            ))}
-            
-            {/* 5th Feed - Full Width */}
-            <div className="col-span-2">
-               <TrafficFeed 
-                  key={FEEDS_CONFIG[4].id} 
-                  {...FEEDS_CONFIG[4]} 
-                  isRunning={systemState === 'running'} 
-                  onVehicleDetect={handleVehicleDetect}
-                />
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: OCR & Logs (3 Cols) - Fixed Height */}
-        <div className="col-span-12 lg:col-span-3 flex flex-col gap-6 h-full overflow-hidden">
-           
-           {/* OCR Live Stream */}
-           <div className="bg-slate-950 border border-slate-800 rounded-xl p-0 flex flex-col h-full overflow-hidden shadow-xl">
-             <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center shrink-0">
-                <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <Database size={16} /> OCR Real-time
+        <div className="col-span-12 lg:col-span-6 flex flex-col gap-4 h-full overflow-y-auto pb-6 pr-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+          {selectedFeedId && selectedFeedData ? (
+            <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-300">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                  <Activity size={16} className="text-blue-600" /> Active Feed Analysis
                 </h2>
-                <span className="text-xs font-mono text-slate-500">PORT: 8080</span>
-             </div>
+                <button 
+                  onClick={() => setSelectedFeedId(null)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 shadow-sm rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
+                >
+                  <ArrowLeft size={14} /> Back to Grid
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 bg-black rounded-xl border-4 border-white shadow-lg overflow-hidden relative ring-1 ring-slate-200">
+                 <TrafficFeed 
+                    key={selectedFeedData.id} 
+                    {...selectedFeedData} 
+                    isRunning={systemState === 'running'} 
+                    onVehicleDetect={handleVehicleDetect}
+                    className="w-full h-full"
+                 />
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-between items-end shrink-0">
+                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2"><Eye size={16} className="text-blue-600" /> Live Surveillance Matrix</h2>
+                <span className={`text-xs flex items-center gap-1 font-bold ${systemState === 'running' ? 'text-red-500 animate-pulse' : 'text-slate-400'}`}>
+                  <span className={`w-2 h-2 rounded-full ${systemState === 'running' ? 'bg-red-500' : 'bg-slate-300'}`}></span>
+                  {systemState === 'running' ? 'AI ANALYZING' : 'CCTV FEED LIVE'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-4 pb-12">
+                {FEEDS_CONFIG.slice(0, 4).map((feed) => (
+                  <TrafficFeed 
+                    key={feed.id} 
+                    {...feed} 
+                    isRunning={systemState === 'running'} 
+                    onVehicleDetect={handleVehicleDetect} 
+                    onClick={() => setSelectedFeedId(feed.id)}
+                  />
+                ))}
+                <div className="col-span-2">
+                  <TrafficFeed 
+                    key={FEEDS_CONFIG[4].id} 
+                    {...FEEDS_CONFIG[4]} 
+                    isRunning={systemState === 'running'} 
+                    onVehicleDetect={handleVehicleDetect}
+                    onClick={() => setSelectedFeedId(FEEDS_CONFIG[4].id)}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
-             <div className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-2 custom-scrollbar" ref={scrollRef}>
-                {systemState === 'offline' && (
-                  <div className="text-slate-600 text-center mt-10 italic">
-                    Waiting for agent initialization...
-                  </div>
-                )}
+        <div className="col-span-12 lg:col-span-3 flex flex-col gap-6 h-full overflow-hidden">
+           <div className="bg-white border border-slate-200 rounded-xl p-0 flex flex-col h-full overflow-hidden shadow-sm">
+             <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
+                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2"><Database size={16} className="text-blue-600" /> OCR Real-time</h2>
+                <span className="text-xs font-mono text-slate-400 font-semibold">PORT: 8080</span>
+             </div>
+             <div className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-2 custom-scrollbar bg-slate-50/30" ref={scrollRef}>
+                {systemState === 'offline' && <div className="text-slate-400 text-center mt-10 italic">Waiting for agent initialization...</div>}
                 {logs.map((log) => (
-                  <div key={log.id} className="flex items-start gap-3 border-b border-slate-800/50 pb-2 animate-in slide-in-from-right fade-in duration-300">
-                    <span className="text-slate-500 shrink-0">[{log.timestamp.split(' ')[0]}]</span>
+                  <div key={log.id} className="flex items-start gap-3 border-b border-slate-100 pb-2 animate-in slide-in-from-right fade-in duration-300">
+                    <span className="text-slate-400 shrink-0 font-bold">[{log.timestamp.split(' ')[0]}]</span>
                     <div className="flex flex-col w-full">
-                      <div className="flex justify-between w-full">
-                        <span className="text-cyan-300 font-bold">{log.plate}</span>
-                        <span className={`${log.confidence > 90 ? 'text-emerald-500' : 'text-yellow-500'}`}>
-                          {log.confidence}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-slate-400 mt-1">
-                        <span className="text-[10px] uppercase bg-slate-800 px-1 rounded">{log.type}</span>
-                        <span className="text-[10px]">CAM-{log.camId}</span>
-                      </div>
+                      <div className="flex justify-between w-full"><span className="text-slate-800 font-bold">{log.plate}</span><span className={`${log.confidence > 90 ? 'text-emerald-600' : 'text-yellow-600'} font-bold`}>{log.confidence}%</span></div>
+                      <div className="flex justify-between text-slate-500 mt-1"><span className="text-[10px] uppercase bg-slate-100 px-1 rounded font-bold">{log.type}</span><span className="text-[10px] font-bold">CAM-{log.camId}</span></div>
                     </div>
                   </div>
                 ))}
              </div>
-
-             {/* Terminal Input Look */}
-             <div className="p-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2 text-xs font-mono text-slate-400 shrink-0">
-                <Terminal size={14} />
-                <span className="animate-pulse">_</span>
-                <span>Listening for data streams...</span>
+             <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center gap-2 text-xs font-mono text-slate-500 shrink-0">
+                <Terminal size={14} /><span className="animate-pulse">_</span><span>Listening for data streams...</span>
              </div>
            </div>
-
         </div>
-
       </main>
 
-      {/* Emergency Overlay */}
       {emergencyActive && (
         <div className="fixed inset-0 pointer-events-none z-40 flex items-center justify-center bg-red-500/10 animate-pulse">
-           <div className="bg-red-950/90 border-2 border-red-500 text-red-100 px-8 py-6 rounded-2xl shadow-2xl shadow-red-500/50 flex flex-col items-center gap-4 pointer-events-auto backdrop-blur-md">
-              <AlertTriangle size={48} className="animate-bounce" />
-              <h1 className="text-3xl font-black tracking-widest uppercase">Emergency Corridor Mode</h1>
-              <p className="text-red-200">Priority signals activated for Ambulance/Fire Support.</p>
-              <div className="w-full h-12 bg-black/50 rounded-lg overflow-hidden relative">
-                 <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-red-500 tracking-widest">
-                   CLEANING ROUTE A-7...
-                 </div>
-                 <div className="h-full bg-red-600/20 w-full animate-progress-indeterminate"></div>
+           <div className="bg-white border-2 border-red-500 text-slate-800 px-8 py-6 rounded-2xl shadow-2xl shadow-red-500/20 flex flex-col items-center gap-4 pointer-events-auto backdrop-blur-md">
+              <AlertTriangle size={48} className="animate-bounce text-red-600" />
+              <h1 className="text-3xl font-black tracking-widest uppercase text-red-600">Emergency Corridor Mode</h1>
+              <p className="text-slate-600 font-medium">Priority signals activated for Ambulance/Fire Support.</p>
+              <div className="w-full h-12 bg-slate-100 rounded-lg overflow-hidden relative border border-slate-200">
+                 <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-red-600 tracking-widest z-10">CLEANING ROUTE A-7...</div>
+                 <div className="h-full bg-red-100 w-full animate-progress-indeterminate"></div>
               </div>
-              <button 
-                onClick={() => setEmergencyActive(false)}
-                className="mt-2 px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-bold uppercase text-sm tracking-wider"
-              >
-                Deactivate Override
-              </button>
+              <button onClick={() => setEmergencyActive(false)} className="mt-2 px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-bold uppercase text-sm tracking-wider shadow-lg shadow-red-200">Deactivate Override</button>
            </div>
         </div>
       )}
-
-      {/* Footer Branding */}
-      <footer className="fixed bottom-4 right-6 text-xs text-slate-600 font-mono pointer-events-none z-50">
-        CORE.EXE © 2025 // IMPACT X 3.0
-      </footer>
+      <footer className="fixed bottom-4 right-6 text-xs text-slate-400 font-mono pointer-events-none z-50 font-bold">CORE.EXE © 2025 // IMPACT X 2.0</footer>
     </div>
   );
 }
