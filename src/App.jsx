@@ -97,8 +97,8 @@ const TrafficVisual = React.memo(() => {
                 left: `${Math.random() * 100}%`,
                 top: '-150px',
                 opacity: 0.6,
-                animation: `trafficFlow ${4 + Math.random() * 6}s linear infinite`,
-                animationDelay: `${Math.random() * 5}s`
+                animation: `trafficFlow ${4 + Math.random() * 2}s linear infinite`,
+                animationDelay: `${Math.random() * 1}s`
               }}
             />
           );
