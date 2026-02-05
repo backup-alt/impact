@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global overrides to ensure the background blends with the UI */
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: #0B1120; /* Deep Midnight Slate */
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar for a professional look */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B1120;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
