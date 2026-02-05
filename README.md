@@ -42,7 +42,7 @@ The system is designed to be **fault-tolerant** (auto-healing streams) and **per
 
 ## ⚙️ Installation & Setup
 
-### 1. Backend (The Brain)
+###Backend (The Brain)
 
 Navigate to the backend folder.
 
